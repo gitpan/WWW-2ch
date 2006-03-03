@@ -41,6 +41,7 @@ sub set_cache {
 	subject => $self->subject,
 	data => $data,
 	time => HTTP::Date::str2time($res->header('Last-Modified')),
+	fetch_time => time,
     });
 }
 

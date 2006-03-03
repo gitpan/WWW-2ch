@@ -18,7 +18,11 @@ sub new {
 	url => $url,
 	threads => [],
 	thread_by_key => {},
-   }, $class;
+    }, $class;
+
+    $self->title($c->setting->{title});
+    $self->noname($c->setting->{noname});
+    $self->image($c->setting->{image});
 
     $self;
 }
@@ -42,12 +46,23 @@ sub load {
 	$data = $cache->{data};
     } else {
 	my $lasttime =  HTTP::Date::str2time($res->header('Last-Modified'));
-	$self->c->cache->set($self->file, {data => $res->content, time => $lasttime});
+	$self->c->cache->set($self->file, {
+	    data => $res->content,
+	    time => $lasttime,
+	    fetch_time => time,
+	    url => $self->url,
+	    title => $self->title,
+	    noname => $self->noname,
+	    image => $self->image,
+	});
 	$data = $res->content;
     }
     my $subject = $self->c->worker->parse_subject($data);
     foreach (@{ $subject }) {
 	$_->{url} = $self->url;
+	$_->{bbstitle} = $self->title;
+	$_->{noname} = $self->noname;
+	$_->{image} = $self->image;
 	$self->add_thread( WWW::2ch::Dat->new($self->c, $_) );
     }
     return 1;
