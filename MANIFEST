@@ -12,6 +12,5 @@ lib/WWW/2ch/UserAgent.pm
 lib/WWW/2ch/Cache.pm
 lib/WWW/2ch/Dat.pm
 lib/WWW/2ch/Subject.pm
-lib/WWW/2ch/Cache
 lib/WWW/2ch/Cache/File.pm
 META.yml                                 Module meta-data (added by MakeMaker)

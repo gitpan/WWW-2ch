@@ -1,6 +1,6 @@
 package WWW::2ch::Plugin::Jbbs;
 use strict;
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 use base qw( WWW::2ch::Plugin::Base );
 
@@ -14,14 +14,13 @@ sub gen_conf {
 
     my $url = $conf->{url};
     my ($host, $bbs, $key);
-    if ($url =~ m|^http://jbbs\.livedoor\.jp/test/read.cgi/([^/]+)/([^/]+)/(\d+)/|i) {
+    if ($url =~ m|^http://jbbs\.livedoor\.jp/bbs/read.cgi/([^/]+)/([^/]+)/(\d+)/|i) {
 	($host, $bbs, $key) = ($1, $2, $3);
     } elsif ($url =~ m|^http://jbbs\.livedoor\.jp/([^/]+)/([^/]+)/|i) {
 	($host, $bbs) = ($1, $2);
     } else {
 	die 'url format error.';
     }
-
     $self->config(+{
 	host => $host,
 	domain => 'jbbs.livedoor.jp',
@@ -29,7 +28,7 @@ sub gen_conf {
 	key => $key,
 	setting => "http://jbbs.livedoor.jp/$host/$bbs/",
 	subject => "http://jbbs.livedoor.jp/$host/$bbs/subject.txt",
-	dat => "http://jbbs.livedoor.jp/bbs/read.cgi/$host/$bbs/$key/",
+	dat => "http://jbbs.livedoor.jp/bbs/rawmode.cgi/$host/$bbs/$key/",
 	local_path => "jbbs.livedoor.jp/$host/$bbs/",
     });
     $self->config;
@@ -37,16 +36,26 @@ sub gen_conf {
 
 sub daturl {
     my ($self, $key) = @_;
-    'http://' . $self->config->{domain} . '/bbs/read.cgi/' . $self->config->{host} . '/' . $self->config->{bbs} . "/$key/";
+    'http://' . $self->config->{domain} . '/bbs/rawmode.cgi/' . $self->config->{host} . '/' . $self->config->{bbs} . "/$key/";
 }
 
 sub permalink {
     my ($self, $key) = @_;
     if ($key) {
-	return $self->config->{dat};
+	return 'http://' . $self->config->{domain} . '/bbs/read.cgi/' . $self->config->{host} . '/' . $self->config->{bbs} . "/$key/";
     } else {
 	return $self->config->{setting};
     }
+}
+
+sub get_dat {
+    my ($self, $c) = @_;
+
+    my $res = $c->c->ua->diff_request($c->url);
+    return unless $res->is_success;
+    my $data = $res->content;
+    $c->set_cache($data, $res);
+    $data;
 }
 
 sub parse_setting {
@@ -73,34 +82,20 @@ sub parse_subject {
     return \@subject;
 }
 
-sub re {
-    my ($self) = @_;
-    '<dt><a href="/bbs/read.cgi/' . $self->config->{host} . '/' . $self->config->{bbs} . '/\d+/\d+">\d+</a> (.*?)<b> (.*?) </b>.*? (.+?)<br><dd>(.*?)<br><br>';
-    '<dt><a href="/bbs/read.cgi/' . $self->config->{host} . '/' . $self->config->{bbs} . '/\d+/(\d+)">\d+</a> (.*?)<b> (.*?) </b>(.*?) (.+?)<br><dd>(.*?) <br><br>$';
-}
-
 sub parse_dat {
     my ($self, $data) = @_;
 
     my @dat;
-    my $re = $self->re;
     foreach (split(/\n/, $data)) {
-	if (/$re/i) {
+	if (/^(.*?)<>(.*?)<>(.*?)<>(.*?)<>(.*?)<>(.*?)<>(.*?)$/i) {
 	    my $res ={
-		name   => $3,
-		mail   => $2,
-		date   => $5,
-		body   => $6,
 		resnum => $1,
+		name   => $2,
+		mail   => $3,
+		date   => $4,
+		body   => $5,
+		id     => $7,
 	    };
-	    if ($res->{date} =~ m|color=#FF0000>(.+?)</font>|) {
-		$res->{name} .= " $1";
-	    }
-	    if ($res->{mail} =~ m|<a href="mailto:(.*?)">|) {
-		$res->{mail} = $1;
-	    } else {
-		$res->{mail} = '';
-	    }
 	    my $date = $self->parse_date($res->{date});
 	    $res->{$_} = $date->{$_} foreach (keys %{ $date });
 	    push(@dat, $res);
@@ -114,11 +109,19 @@ sub parse_date {
 
     my $ret = {
 	time => time,
-	id => '',
-	be => '',
     };
-    if ($data =~ m|(\d+)/(\d+)/(\d+)\(.+?\) (\d+):(\d+)|) {
-	$ret->{time} = mktime(0, $5, $4, $3, $2 - 1, $1 - 1900);
+    my ($y, $m, $d, $h, $i, $s) = (0, 0, 0, 0, 0, 0);
+    if ($data =~ m|(\d+)/(\d+)/(\d+)|) {
+	($y, $m, $d) = ($1, $2, $3);
+	if ($data =~ m| (\d+):(\d+):(\d+)|) {
+	    ($h, $i, $s) = ($1, $2, $3);
+	} elsif ($data =~ m| (\d+):(\d+)|) {
+	    ($h, $i, $s) = ($1, $2, 0);
+	}
+	$y += 2000 if $y < 10;
+	$y -= 1900;
+	$m--;
+	$ret->{time} = mktime($s, $i, $h, $d, $m, $y);
     }
     $ret;
 }

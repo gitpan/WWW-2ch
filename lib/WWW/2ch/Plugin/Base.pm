@@ -1,6 +1,6 @@
 package WWW::2ch::Plugin::Base;
 use strict;
-our $VERSION = '0.04';
+our $VERSION = '0.05';
 
 use base qw( Class::Accessor::Fast );
 __PACKAGE__->mk_accessors( qw( conf config ) );
@@ -84,11 +84,10 @@ sub get_dat {
     }
     unless ($cache->{data}) {
 	$res = $c->c->ua->diff_request($c->url);
-	return 0 unless $res->is_success;
+	return unless $res->is_success;
 	my $data = $data = $res->content;
 	$c->set_cache($data, $res);
     }
-    $c->dat($data);
     $data;
 }
 
@@ -152,8 +151,19 @@ sub parse_date {
 	id => '',
 	be => '',
     };
-    if ($data =~ m|(\d+)/(\d+)/(\d+)\(.+?\) (\d+):(\d+):(\d+)\.(\d+)|) {
-	$ret->{time} = mktime($6, $5, $4, $3, $2 - 1, $1 - 1900);
+
+    my ($y, $m, $d, $h, $i, $s) = (0, 0, 0, 0, 0, 0);
+    if ($data =~ m|(\d+)/(\d+)/(\d+)|) {
+	($y, $m, $d) = ($1, $2, $3);
+	if ($data =~ m| (\d+):(\d+):(\d+)|) {
+	    ($h, $i, $s) = ($1, $2, $3);
+	} elsif ($data =~ m| (\d+):(\d+)|) {
+	    ($h, $i, $s) = ($1, $2, 0);
+	}
+	$y += 2000 if $y < 10;
+	$y -= 1900;
+	$m--;
+	$ret->{time} = mktime($s, $i, $h, $d, $m, $y);
     }
     if ($data =~ / ID:([^ ]+) ?/) {
 	$ret->{id} = $1;

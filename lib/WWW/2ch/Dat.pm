@@ -18,11 +18,15 @@ sub new {
 	subject => $subject,
     }, $class;
 
-    $self->key($subject->{key});
-    $self->title($subject->{title});
-    $self->resnum($subject->{resnum});
-
+    $self->set_subjects;
     $self;
+}
+
+sub set_subjects {
+    my ($self) = @_;
+    $self->key($self->subject->{key});
+    $self->title($self->subject->{title});
+    $self->resnum($self->subject->{resnum});
 }
 
 sub get_cache {
@@ -31,6 +35,7 @@ sub get_cache {
     my $cache = $self->c->cache->get($self->file);
     return unless $cache->{data};
     $self->subject($cache->{subject});
+    $self->set_subjects;
     $self->dat($cache->{data});
     $cache;
 }
@@ -51,8 +56,7 @@ sub load {
     $self->{reslist} = [];
     $self->{res_by_num} ={};
     return 0 unless $self->c && $self->key;
-
-    $self->c->worker->get_dat($self);
+    $self->dat($self->c->worker->get_dat($self));
     $self->parse;
 }
 

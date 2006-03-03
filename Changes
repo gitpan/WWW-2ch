@@ -1,5 +1,11 @@
 Revision history for Perl extension WWW::2ch.
 
+0.06  Sat Mar  4 2006
+	* support old format of date to 2ch and jbbs. Thanks to hkrn
+	* how to take the article on jbbs was changed. Thanks to hkrn
+	* change to cash is surely used. 
+
+
 0.05  Sat Mar  4 2006
 	* Change max_redirect to UserAgent
 
