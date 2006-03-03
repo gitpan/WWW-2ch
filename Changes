@@ -1,5 +1,8 @@
 Revision history for Perl extension WWW::2ch.
 
+0.05  Sat Mar  4 2006
+	* Change max_redirect to UserAgent
+
 0.04  Fri Mar  3 2006
 	* Added fetch time to subject/dat cache
 	* Added subject data to dat cache

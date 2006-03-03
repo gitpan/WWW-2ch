@@ -14,6 +14,7 @@ sub new {
     $ua = " ($ua)" if $ua;
     $self->agent("Monazilla/1.00 WWW::2ch/$WWW::2ch::VERSION$ua");
     $self->timeout(15);
+    $self->max_redirect(0);
     $self;
 }
 
