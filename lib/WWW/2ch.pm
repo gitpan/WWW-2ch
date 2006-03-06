@@ -1,7 +1,7 @@
 package WWW::2ch;
 
 use strict;
-our $VERSION = '0.06';
+our $VERSION = '0.07';
 
 use UNIVERSAL::require;
 
@@ -29,12 +29,24 @@ sub new {
 }
 
 sub load_plugin {
-    my $self = shift;
+    my ($self, $conf) = shift;
 
-    my $module = $self->{plugin};
-    $module = "WWW::2ch::Plugin::$module";
-
-    $module->require or die $@;
+    my $module;
+    if (-f $self->{plugin}) {
+	open my $fh, $self->{plugin} or return;
+	while (<$fh>) {
+	    if (/^package (WWW::2ch::Plugin::.*?);/) {
+		eval { require $self->{plugin} } or die $@;
+		$module = $1;
+		last;
+	    }
+	}
+    } else {
+	$module = $self->{plugin};
+	$module =~ s/^WWW::2ch::Plugin:://;;
+	$module = "WWW::2ch::Plugin::$module";
+	$module->require or die $@;
+    }
     $self->worker($module->new($self->conf));
 }
 
@@ -95,7 +107,7 @@ WWW::2ch - scraping of a popular bbs of Japan.
       print $dat->title . "\n";
       print '>>1: ' . $one->body;
       foreach my $res ($dat->reslist) {
-        print $res->num . ':' . $res->date . "\n";
+        print $res->resid . ':' . $res->date . "\n";
         print $res->body_text . "\n";
       }
       last;
@@ -124,6 +136,17 @@ WWW::2ch - scraping of a popular bbs of Japan.
 
   # returns it with raw article data.
   $dat->dat;
+
+  #plugin load
+  my $bbs = WWW::2ch->new(url => 'http://example.jp/test/read.cgi/ogame/1140947283/l50',
+                          cache => '/tmp/www2ch-cache',
+                          plugin => 'ExampleJp');
+
+  # plugin file load
+  my $bbs = WWW::2ch->new(url => 'http://example.com/test/read.cgi/ogame/1140947283/l50',
+                          cache => '/tmp/www2ch-cache',
+                          plugin => '/usr/local/www-2ch/lib/ExampleCom.pm');
+
 
 =head1 DESCRIPTION
 

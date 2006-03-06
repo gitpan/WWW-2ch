@@ -2,12 +2,15 @@ package WWW::2ch::Res;
 use strict;
 
 use base qw( Class::Accessor::Fast );
-__PACKAGE__->mk_accessors( qw( num name mail date time id be body ) );
+__PACKAGE__->mk_accessors( qw( c key resid num name mail date time id be body ) );
 
 sub new {
     my $class = shift;
+    my $c = shift;
     my $opt = shift;
-    bless $opt, $class;
+    my $self = bless $opt, $class;
+    $self->c($c);
+    $self;
 }
 
 sub body_text {
@@ -19,6 +22,12 @@ sub body_text {
     $body =~ s/&gt;/>/g;
     $body;
 }
+
+sub permalink {
+    my ($self) = @_;
+    $self->c->worker->permalink($self->key, $self->resid);
+}
+
 1;
 
 __END__
@@ -31,6 +40,10 @@ WWW::2ch::Res - remark of BBS is treated.
 =head1 Method
 
 =over 4
+
+=item key
+
+=item resid
 
 =item num
 

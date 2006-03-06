@@ -68,7 +68,9 @@ sub parse {
     my $i = 1;
     foreach (@{ $dat }) {
 	$_->{num} = $i++;
-	$self->add_res( WWW::2ch::Res->new($_) );
+	$_->{key} = $self->key;
+	$_->{resid} = $_->{num} if $_->{resid} eq '';
+	$self->add_res( WWW::2ch::Res->new($self->c, $_) );
     }
     $i;
 }
@@ -93,6 +95,7 @@ sub url {
     my ($self) = @_;
     $self->c->worker->daturl($self->key);
 }
+
 sub file {
     my ($self) = @_;
     $self->c->conf->{local_path} . $self->key . '.dat';

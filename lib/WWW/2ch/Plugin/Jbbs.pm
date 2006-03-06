@@ -1,6 +1,6 @@
 package WWW::2ch::Plugin::Jbbs;
 use strict;
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 use base qw( WWW::2ch::Plugin::Base );
 
@@ -40,9 +40,13 @@ sub daturl {
 }
 
 sub permalink {
-    my ($self, $key) = @_;
+    my ($self, $key, $resid) = @_;
     if ($key) {
-	return 'http://' . $self->config->{domain} . '/bbs/read.cgi/' . $self->config->{host} . '/' . $self->config->{bbs} . "/$key/";
+	if ($resid) {
+	    return 'http://' . $self->config->{domain} . '/bbs/read.cgi/' . $self->config->{host} . '/' . $self->config->{bbs} . "/$key/$resid";
+	} else {
+	    return 'http://' . $self->config->{domain} . '/bbs/read.cgi/' . $self->config->{host} . '/' . $self->config->{bbs} . "/$key/";
+	}
     } else {
 	return $self->config->{setting};
     }
@@ -89,7 +93,7 @@ sub parse_dat {
     foreach (split(/\n/, $data)) {
 	if (/^(.*?)<>(.*?)<>(.*?)<>(.*?)<>(.*?)<>(.*?)<>(.*?)$/i) {
 	    my $res ={
-		resnum => $1,
+		resid  => $1,
 		name   => $2,
 		mail   => $3,
 		date   => $4,

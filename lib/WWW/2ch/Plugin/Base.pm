@@ -1,6 +1,6 @@
 package WWW::2ch::Plugin::Base;
 use strict;
-our $VERSION = '0.05';
+our $VERSION = '0.06';
 
 use base qw( Class::Accessor::Fast );
 __PACKAGE__->mk_accessors( qw( conf config ) );
@@ -53,9 +53,13 @@ sub daturl {
 }
 
 sub permalink {
-    my ($self, $key) = @_;
+    my ($self, $key, $resid) = @_;
     if ($key) {
-	return 'http://' . $self->config->{domain} . '/test/read.cgi/' . $self->config->{bbs} . "/$key/";
+	if ($resid) {
+	    return 'http://' . $self->config->{domain} . '/test/read.cgi/' . $self->config->{bbs} . "/$key/$resid";
+	} else {
+	    return 'http://' . $self->config->{domain} . '/test/read.cgi/' . $self->config->{bbs} . "/$key/";
+	}
     } else {
 	return 'http://' . $self->config->{domain} . '/' . $self->config->{bbs} . '/';
     }
@@ -128,17 +132,21 @@ sub parse_dat {
     my ($self, $data) = @_;
 
     my @dat;
+    my $i = 0;
     foreach (split(/\n/, $data)) {
-	/^(.*?)<>(.*?)<>(.*?)<>(.*?)<>.*?$/;
-	my $res ={
-	    name => $1,
-	    mail => $2,
-	    date => $3,
-	    body => $4,
-	};
-	my $date = $self->parse_date($res->{date});
-	$res->{$_} = $date->{$_} foreach (keys %{ $date });
-	push(@dat, $res);
+	if (/^(.*?)<>(.*?)<>(.*?)<>(.*?)<>.*?$/) {
+	    $i++;
+	    my $res ={
+		name => $1,
+		mail => $2,
+		date => $3,
+		body => $4,
+		resid => $i,
+	    };
+	    my $date = $self->parse_date($res->{date});
+	    $res->{$_} = $date->{$_} foreach (keys %{ $date });
+	    push(@dat, $res);
+	}
     }
     return \@dat;
 }
